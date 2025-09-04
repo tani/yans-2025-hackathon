@@ -1,0 +1,23 @@
+[project]
+name = "yans-2025-hackathon"
+version = "0.1.0"
+description = "YANS 2025 Hackathon Project"
+readme = "README.md"
+authors = [
+    { name = "Ryou0634", email = "ryou0634@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=4.0.0",
+    "transformers[torch]>=4.56.0",
+    "trl==0.22.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.11",
+]
