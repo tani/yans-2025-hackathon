@@ -59,9 +59,6 @@ def train_dpo(
         msg = f"`train_dataset` の総文字数が多すぎます。`content` の合計は最大 {MAX_NUM_CHARS} 文字までにしてください。"
         raise ValueError(msg)
 
-    model = AutoModelForCausalLM.from_pretrained(model)
-    tokenizer = AutoTokenizer.from_pretrained(model)
-
     accumulation_steps = batch_size // local_batch_size
     training_args = DPOConfig(
         per_device_train_batch_size=local_batch_size,
@@ -77,9 +74,9 @@ def train_dpo(
         report_to="none",
     )
     trainer = DPOTrainer(
-        model=model,
+        model=AutoModelForCausalLM.from_pretrained(model),
         args=training_args,
-        processing_class=tokenizer,
+        processing_class=AutoTokenizer.from_pretrained(model),
         train_dataset=train_dataset,
     )
     trainer.train()
