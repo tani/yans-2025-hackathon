@@ -1,6 +1,6 @@
 import pytest
 from yans_2025_hackathon.eval import (
-    _normalize_number,
+    normalize_number,
     extra_answer_from_response,
     evaluate_response,
 )
@@ -19,8 +19,8 @@ from yans_2025_hackathon.eval import (
         ("0,001,", "1"),
     ],
 )
-def test_normalize_number(input_value, expected):
-    assert _normalize_number(input_value) == expected
+def testnormalize_number(input_value, expected):
+    assert normalize_number(input_value) == expected
 
 
 @pytest.mark.parametrize(

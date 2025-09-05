@@ -1,7 +1,7 @@
 import re
 
 
-def _normalize_number(number: str | int) -> str:
+def normalize_number(number: str | int) -> str:
     if isinstance(number, int):
         return str(number)
     return number.replace(",", "").replace(" ", "").lstrip("0")
@@ -40,6 +40,6 @@ def evaluate_response(response: str, answer_number: int) -> bool:
     extracted_answer = extra_answer_from_response(response)
     if not extracted_answer:
         return False
-    normalized_extracted = _normalize_number(extracted_answer)
-    normalized_answer = _normalize_number(answer_number)
+    normalized_extracted = normalize_number(extracted_answer)
+    normalized_answer = normalize_number(answer_number)
     return normalized_extracted == normalized_answer
