@@ -1,10 +1,22 @@
 import re
 
 
-def normalize_number(number: str | int) -> str:
+def normalize_number(number: str | int | float) -> str:
     if isinstance(number, int):
         return str(number)
-    return number.replace(",", "").replace(" ", "").lstrip("0")
+
+    if isinstance(number, float):
+        if number.is_integer():
+            return str(int(number))
+        return str(number)
+
+    if not number.strip():
+        return ""
+
+    normalized_number = number.replace(",", "").replace(" ", "").strip("0").rstrip(".")
+    if normalized_number in {"", "-0"}:
+        return "0"
+    return normalized_number
 
 
 def extra_answer_from_response(response: str) -> str:

@@ -2,6 +2,8 @@ from trl import SFTTrainer
 from datasets import Dataset
 from transformers import TrainingArguments
 import torch
+from peft import LoraConfig, TaskType
+
 
 # 学習データセットの制限
 MAX_SAMPLE_SIZE = 500  # 最大500サンプル
@@ -25,6 +27,7 @@ def train_sft(
     local_batch_size: int = 1,
     learning_rate: float = 2e-6,
     num_train_epochs: int = 3,
+    use_lora: bool = False,
 ):
     """
     YANS 2025 ハッカソンで使用する SFT（Supervised Fine-tuning）を実行する関数。
@@ -38,6 +41,7 @@ def train_sft(
         local_batch_size (int, optional): デバイスごとのローカルバッチサイズ。デフォルトは1。
         learning_rate (float, optional): 学習率。デフォルトは2e-6。
         num_train_epochs (int, optional): 学習エポック数。デフォルトは3。
+        use_lora (bool, optional): LoRAを使用するかどうか。デフォルトはTrue。
 
     Raises:
         ValueError: データセットに"messages"フィールドがない場合
@@ -56,6 +60,25 @@ def train_sft(
         msg = f"`train_dataset` の総文字数が多すぎます。`content` の合計は最大 {MAX_NUM_CHARS} 文字までにしてください。"
         raise ValueError(msg)
 
+    # LoRAの設定
+    peft_config = None
+    if use_lora:
+        peft_config = LoraConfig(
+            r=128,
+            lora_alpha=128,
+            lora_dropout=0.05,
+            task_type=TaskType.CAUSAL_LM,
+            target_modules=[
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        )
+
     accumulation_steps = batch_size // local_batch_size
     training_args = TrainingArguments(
         per_device_train_batch_size=local_batch_size,
@@ -73,8 +96,12 @@ def train_sft(
         model=model,
         train_dataset=train_dataset,
         args=training_args,
+        peft_config=peft_config,
     )
     trainer.train()
+
+    if use_lora:
+        trainer.model = trainer.model.merge_and_unload()
 
     trainer.save_model(save_dir)
     trainer.processing_class.save_pretrained(save_dir)
