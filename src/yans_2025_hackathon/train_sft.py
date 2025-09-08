@@ -28,6 +28,8 @@ def train_sft(
     learning_rate: float = 2e-6,
     num_train_epochs: int = 3,
     use_lora: bool = False,
+    training_arguments: dict | None = None,
+    trainer_kwargs: dict | None = None,
 ):
     """
     YANS 2025 ハッカソンで使用する SFT（Supervised Fine-tuning）を実行する関数。
@@ -42,6 +44,8 @@ def train_sft(
         learning_rate (float, optional): 学習率。デフォルトは2e-6。
         num_train_epochs (int, optional): 学習エポック数。デフォルトは3。
         use_lora (bool, optional): LoRAを使用するかどうか。デフォルトはTrue。
+        training_arguments (dict, optional): TrainingArgumentsの追加設定。デフォルトはNone。
+        trainer_kwargs (dict, optional): SFTTrainerの追加設定。デフォルトはNone。
 
     Raises:
         ValueError: データセットに"messages"フィールドがない場合
@@ -80,6 +84,7 @@ def train_sft(
         )
 
     accumulation_steps = batch_size // local_batch_size
+    training_arguments = training_arguments or {}
     training_args = TrainingArguments(
         per_device_train_batch_size=local_batch_size,
         gradient_accumulation_steps=accumulation_steps,
@@ -91,17 +96,21 @@ def train_sft(
         logging_steps=10,
         save_strategy="no",
         report_to="none",
+        **training_arguments,
     )
+    trainer_kwargs = trainer_kwargs or {}
     trainer = SFTTrainer(
         model=model,
         train_dataset=train_dataset,
         args=training_args,
         peft_config=peft_config,
+        **trainer_kwargs,
     )
     trainer.train()
 
     if use_lora:
         trainer.model = trainer.model.merge_and_unload()
 
+    print(f"Saving model to {save_dir}")
     trainer.save_model(save_dir)
     trainer.processing_class.save_pretrained(save_dir)
