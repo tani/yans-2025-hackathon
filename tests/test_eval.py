@@ -9,6 +9,10 @@ from yans_2025_hackathon.eval import (
 @pytest.mark.parametrize(
     "input_value,expected",
     [
+        ("0", "0"),
+        ("-0.000", "0"),
+        ("0.123", ".123"),
+        ("123.500", "123.5"),
         (123, "123"),
         (0, "0"),
         (-123, "-123"),
@@ -17,9 +21,11 @@ from yans_2025_hackathon.eval import (
         ("1,234", "1234"),
         (" 123 ", "123"),
         ("0,001,", "1"),
+        ("2.00,", "2"),
+        (2.0, "2"),
     ],
 )
-def testnormalize_number(input_value, expected):
+def test_normalize_number(input_value, expected):
     assert normalize_number(input_value) == expected
 
 
