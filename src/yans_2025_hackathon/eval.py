@@ -1,22 +1,43 @@
 import re
 
 
-def normalize_number(number: str | int | float) -> str:
+def normalize_number(number: str | int) -> str:
+    """Normalize a numeric representation to a canonical string.
+
+    - Removes spaces/commas
+    - Handles integers/decimals
+    - Removes leading zeros for integer part
+    - Trims trailing zeros in the fractional part and drops trailing dot
+    - Keeps minus sign only when non-zero
+    """
     if isinstance(number, int):
         return str(number)
 
-    if isinstance(number, float):
-        if number.is_integer():
-            return str(int(number))
-        return str(number)
-
-    if not number.strip():
+    s = str(number).strip()
+    if not s:
         return ""
 
-    normalized_number = number.replace(",", "").replace(" ", "").strip("0").rstrip(".")
-    if normalized_number in {"", "-0"}:
-        return "0"
-    return normalized_number
+    # Remove commas and spaces
+    s = s.replace(",", "").replace(" ", "")
+
+    neg = s.startswith("-")
+    if neg:
+        s = s[1:]
+
+    if "." in s:
+        int_part, frac_part = s.split(".", 1)
+        int_part = int_part.lstrip("0") or "0"
+        frac_part = frac_part.rstrip("0")
+        if frac_part:
+            out = f"{int_part}.{frac_part}"
+        else:
+            out = int_part
+    else:
+        out = s.lstrip("0") or "0"
+
+    if neg and out != "0":
+        out = "-" + out
+    return out
 
 
 def extra_answer_from_response(response: str) -> str:
@@ -34,7 +55,10 @@ def extra_answer_from_response(response: str) -> str:
     matched_answers = re.compile(r"-?[\d.,]+").findall(response)
     if not matched_answers:
         return ""
-    return matched_answers[-1]
+    answer = matched_answers[-1]
+    if answer.endswith("."):
+        answer = answer[:-1]
+    return answer
 
 
 def evaluate_response(response: str, answer_number: int) -> bool:
