@@ -36,7 +36,7 @@ def train_sft(
     Args:
         train_dataset (list[dict[str, str]]): 学習用データセット。以下の形式を持つ辞書のリスト。
             [
-                {"question": "質問文", "answer": "回答文"},
+                {"question": "問題文", "answer": "回答文"},
                 ...
             ]
         save_dir (str): 学習済みモデルの保存先ディレクトリ。
@@ -50,7 +50,7 @@ def train_sft(
         trainer_kwargs (dict, optional): SFTTrainerの追加設定。デフォルトはNone。
 
     Raises:
-        ValueError: データセットに"messages"フィールドがない場合
+        ValueError: データセットに指定されたフィールドがない場合
         ValueError: サンプル数が500を超える場合
         ValueError: 総文字数が50万文字を超える場合
     """
