@@ -10,17 +10,15 @@ MAX_SAMPLE_SIZE = 500  # 最大500サンプル
 MAX_NUM_CHARS = 500_000  # 最大50万文字
 
 
-def _count_characters_in_dataset(dataset: Dataset) -> int:
+def _count_characters_in_dataset(dataset: list[dict[str, str]]) -> int:
     num_chars = 0
     for item in dataset:
-        messages = item["messages"]
-        for mes in messages:
-            num_chars += len(mes["content"])
+        num_chars += len(item["question"]) + len(item["answer"])
     return num_chars
 
 
 def train_sft(
-    train_dataset: Dataset,
+    train_dataset: list[dict[str, str]],
     save_dir: str,
     model: str = "SakanaAI/TinySwallow-1.5B",
     batch_size: int = 4,
@@ -36,7 +34,11 @@ def train_sft(
     学習データにはサイズ制限があり、最大500サンプル、総文字数50万文字まで。
 
     Args:
-        train_dataset (Dataset): 学習用データセット。"messages"フィールドを含む必要がある。
+        train_dataset (list[dict[str, str]]): 学習用データセット。以下の形式を持つ辞書のリスト。
+            [
+                {"question": "質問文", "answer": "回答文"},
+                ...
+            ]
         save_dir (str): 学習済みモデルの保存先ディレクトリ。
         model (str, optional): 使用する事前学習モデル。デフォルトは"SakanaAI/TinySwallow-1.5B"。
         batch_size (int, optional): バッチサイズ。デフォルトは4。
@@ -52,9 +54,10 @@ def train_sft(
         ValueError: サンプル数が500を超える場合
         ValueError: 総文字数が50万文字を超える場合
     """
-    if "messages" not in train_dataset.features:
-        msg = "`train_dataset` は `messages` フィールドを含む必要があります。"
-        raise ValueError(msg)
+    for item in train_dataset:
+        if not ("question" in item and "answer" in item):
+            msg = "`train_dataset` の各アイテムは 'question' と 'answer' フィールドを持つ必要があります。"
+            raise ValueError(msg)
 
     if len(train_dataset) > MAX_SAMPLE_SIZE:
         msg = f"`train_dataset` のサンプル数が多すぎます。最大 {MAX_SAMPLE_SIZE} 件までにしてください。"
@@ -63,6 +66,19 @@ def train_sft(
     if _count_characters_in_dataset(train_dataset) > MAX_NUM_CHARS:
         msg = f"`train_dataset` の総文字数が多すぎます。`content` の合計は最大 {MAX_NUM_CHARS} 文字までにしてください。"
         raise ValueError(msg)
+
+    # データセットの変換
+    message_formatted_dataset: list[dict] = []
+    for item in train_dataset:
+        message_formatted_dataset.append(
+            {
+                "messages": [
+                    {"role": "user", "content": item["question"]},
+                    {"role": "assistant", "content": item["answer"]},
+                ]
+            }
+        )
+    hf_dataset = Dataset.from_list(message_formatted_dataset)
 
     # LoRAの設定
     peft_config = None
@@ -101,7 +117,7 @@ def train_sft(
     trainer_kwargs = trainer_kwargs or {}
     trainer = SFTTrainer(
         model=model,
-        train_dataset=train_dataset,
+        train_dataset=hf_dataset,
         args=training_args,
         peft_config=peft_config,
         **trainer_kwargs,
